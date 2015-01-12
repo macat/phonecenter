@@ -2,7 +2,6 @@ package main
 
 import (
 	"code.google.com/p/goauth2/oauth"
-	"encoding/gob"
 	"flag"
 	"fmt"
 	calendar "google.golang.org/api/calendar/v3"
