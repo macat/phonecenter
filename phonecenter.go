@@ -81,19 +81,15 @@ func CallHandler(w http.ResponseWriter, req *http.Request) {
 		log.Fatalf("An error occurred creating Calendar client: %v\n", err)
 	}
 
-	res, err := svc.Events.List(calendarId).TimeMin("2015-01-11T0:0:00.0Z").TimeMax("2015-01-12T0:0:00.0Z").Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve calendar events list: %v", err)
-	}
 	now := time.Now()
+	tomorrow := now.Add(time.Hour * 24)
+	res, err := svc.Events.List(calendarId).TimeMin(now.Format("2006-01-02") + "T0:0:00.0Z").TimeMax(tomorrow.Format("2006-01-02") + "T0:0:00.0Z").Do()
+	checkError(err)
 	var startTime time.Time
 	var endTime time.Time
 	phoneNumbers := []string{}
 	for _, v := range res.Items {
-		fmt.Printf("%#v\n", v.Start.DateTime)
-		fmt.Printf("%#v\n", v.Start.Date)
 		if v.Start.DateTime != "" {
-			fmt.Println("OK?")
 			startTime, _ = time.Parse(time.RFC3339, v.Start.DateTime)
 		} else {
 			startTime, _ = time.Parse(time.RFC3339, v.Start.Date+"T00:00:00-05:00")
@@ -103,17 +99,11 @@ func CallHandler(w http.ResponseWriter, req *http.Request) {
 		} else {
 			endTime, _ = time.Parse(time.RFC3339, v.End.Date+"T00:00:00-05:00")
 		}
-
-		fmt.Println(startTime)
-		fmt.Println(endTime)
-
 		if now.After(startTime) && now.Before(endTime) {
-			fmt.Println("OO")
 			phoneNumbers = append(phoneNumbers, parseNumbers(v.Location)...)
 		}
 		log.Printf("Calendar ID %q event: %v: %q\n", calendarId, v.Updated, v.Summary, v.Location)
 	}
-
 	setHeaders(w)
 	callTmpl.Execute(w, phoneNumbers)
 }
@@ -133,8 +123,7 @@ func parseNumbers(numberString string) []string {
 
 func checkError(err error) {
 	if err != nil {
-		fmt.Println("Fatal error ", err.Error())
-		os.Exit(1)
+		log.Println("Error ", err.Error())
 	}
 }
 
