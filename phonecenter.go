@@ -29,6 +29,9 @@ var (
 )
 
 func main() {
+	log.Println("+++ Namely Phonecenter +++")
+	log.Println("++++++++++++++++++++++++++")
+
 	config.ClientId = os.Getenv("GOOGLE_CLIENT_ID")
 	config.ClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	calendarId = os.Getenv("CALENDAR_ID")
