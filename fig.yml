@@ -1,0 +1,12 @@
+web:
+  build: .
+  ports:
+    - "1718:1718"
+  environment:
+    GOOGLE_CLIENT_ID:
+    GOOGLE_CLIENT_SECRET:
+    CALENDAR_ID:
+    REFRESH_TOKEN:
+  volumes:
+    - .:/go/src/app
+  command: go run phonecenter.go

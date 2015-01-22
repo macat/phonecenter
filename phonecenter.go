@@ -39,6 +39,7 @@ func main() {
 
 	http.Handle("/call", http.HandlerFunc(CallHandler))
 	http.Handle("/whisper", http.HandlerFunc(WhisperHandler))
+	log.Println(*addr)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
@@ -82,27 +83,30 @@ func CallHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	now := time.Now()
-	tomorrow := now.Add(time.Hour * 24)
-	res, err := svc.Events.List(calendarId).TimeMin(now.Format("2006-01-02") + "T0:0:00.0Z").TimeMax(tomorrow.Format("2006-01-02") + "T0:0:00.0Z").Do()
+	nexWeek := now.Add(time.Hour * 168)
+	lastWeek := now.Add(-time.Hour * 168)
+	res, err := svc.Events.List(calendarId).TimeMin(lastWeek.Format("2006-01-02") + "T0:0:00.0Z").TimeMax(nexWeek.Format("2006-01-02") + "T0:0:00.0Z").Do()
 	checkError(err)
 	var startTime time.Time
 	var endTime time.Time
 	phoneNumbers := []string{}
 	for _, v := range res.Items {
-		if v.Start.DateTime != "" {
-			startTime, _ = time.Parse(time.RFC3339, v.Start.DateTime)
-		} else {
-			startTime, _ = time.Parse(time.RFC3339, v.Start.Date+"T00:00:00-05:00")
+		if v.Start != nil || v.End != nil {
+			if v.Start.DateTime != "" {
+				startTime, _ = time.Parse(time.RFC3339, v.Start.DateTime)
+			} else {
+				startTime, _ = time.Parse(time.RFC3339, v.Start.Date+"T00:00:00-05:00")
+			}
+			if v.End.DateTime != "" {
+				endTime, _ = time.Parse(time.RFC3339, v.End.DateTime)
+			} else {
+				endTime, _ = time.Parse(time.RFC3339, v.End.Date+"T00:00:00-05:00")
+			}
+			if now.After(startTime) && now.Before(endTime) {
+				phoneNumbers = append(phoneNumbers, parseNumbers(v.Location)...)
+			}
+			log.Printf("Calendar ID %q event: %v: %q\n", calendarId, v.Updated, v.Summary, v.Location)
 		}
-		if v.End.DateTime != "" {
-			endTime, _ = time.Parse(time.RFC3339, v.End.DateTime)
-		} else {
-			endTime, _ = time.Parse(time.RFC3339, v.End.Date+"T00:00:00-05:00")
-		}
-		if now.After(startTime) && now.Before(endTime) {
-			phoneNumbers = append(phoneNumbers, parseNumbers(v.Location)...)
-		}
-		log.Printf("Calendar ID %q event: %v: %q\n", calendarId, v.Updated, v.Summary, v.Location)
 	}
 	setHeaders(w)
 	callTmpl.Execute(w, phoneNumbers)
